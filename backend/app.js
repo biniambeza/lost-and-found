@@ -8,9 +8,19 @@ const authRoutes = require('./routes/authRoutes');
 const itemRoutes = require('./routes/itemRoutes');
 
 const app = express();
-const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:5173').split(',').map((origin) => origin.trim());
+const configuredOrigins = (process.env.CLIENT_URL || 'http://localhost:5173').split(',').map((origin) => origin.trim());
 
-app.use(cors({ origin: allowedOrigins, credentials: true }));
+app.use(cors({
+	origin(origin, callback) {
+		if (!origin) return callback(null, true);
+		if (configuredOrigins.includes(origin)) return callback(null, true);
+		if (/^http:\/\/(localhost|127\.0\.0\.1)(:[0-9]+)?$/.test(origin)) {
+			return callback(null, true);
+		}
+		return callback(new Error(`Origin ${origin} not allowed by CORS`));
+	},
+	credentials: true,
+}));
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 app.get('/api/health', (_request, response) => response.json({ status: 'ok' }));
